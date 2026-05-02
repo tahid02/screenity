@@ -682,6 +682,11 @@ const ContentState = (props) => {
       elapsedMs: Date.now() - reconstructStartedAt,
       type: blob?.type || null,
     });
+    // Check if token is present (before both MP4 and WebM paths)
+    const { token: _driveToken, youtubeToken: _ytToken } = await chrome.storage.local.get(["token", "youtubeToken"]);
+    const driveEnabled = Boolean(_driveToken);
+    const youtubeEnabled = Boolean(_ytToken);
+
     if (blob.type === "video/mp4") {
       if (DEBUG_RECORDER)
         console.log("[Screenity][Sandbox] reconstructVideo: fast MP4 path taken", {
@@ -725,6 +730,8 @@ const ContentState = (props) => {
         rawBlob: blob,
         isFfmpegRunning: false,
         noffmpeg: false,
+        driveEnabled: driveEnabled,
+        youtubeEnabled: youtubeEnabled,
         // Native MP4 from WebCodecs: trim/crop go through mediabunny streaming
         // ops, and mute/add-audio have their own 15-min cap. 7 min is a
         // leftover from the ffmpeg.wasm era — bump to 15 min to match.
@@ -810,20 +817,6 @@ const ContentState = (props) => {
       }
     }
 
-    // Check if token is present
-    const { token, youtubeToken } = await chrome.storage.local.get(["token", "youtubeToken"]);
-
-    let driveEnabled = false;
-    let youtubeEnabled = false;
-
-    if (token && token !== null) {
-      driveEnabled = true;
-    }
-
-    if (youtubeToken && youtubeToken !== null) {
-      youtubeEnabled = true;
-    }
-
     const safeDuration = Number(recordingDuration) || 0;
     setContentState((prevState) => ({
       ...prevState,
@@ -854,6 +847,8 @@ const ContentState = (props) => {
                   webm: fixedWebm,
                   ready: true,
                   isFfmpegRunning: false,
+                  driveEnabled: driveEnabled,
+                  youtubeEnabled: youtubeEnabled,
                 }));
                 chrome.runtime.sendMessage({ type: "recording-complete" });
                 return;
@@ -890,6 +885,8 @@ const ContentState = (props) => {
               webm: fixedWebm,
               ready: true,
               isFfmpegRunning: false,
+              driveEnabled: driveEnabled,
+              youtubeEnabled: youtubeEnabled,
             }));
             chrome.runtime.sendMessage({ type: "recording-complete" });
             return;
@@ -902,6 +899,7 @@ const ContentState = (props) => {
               ...prevContentState,
               base64: base64data,
               driveEnabled: driveEnabled,
+              youtubeEnabled: youtubeEnabled,
             }));
           };
           reader.readAsDataURL(fixedWebm);
@@ -924,6 +922,8 @@ const ContentState = (props) => {
             webm: blob,
             ready: true,
             isFfmpegRunning: false,
+            driveEnabled: driveEnabled,
+            youtubeEnabled: youtubeEnabled,
           }));
           chrome.runtime.sendMessage({ type: "recording-complete" });
           return;
@@ -936,6 +936,7 @@ const ContentState = (props) => {
             ...prevContentState,
             base64: base64data,
             driveEnabled: driveEnabled,
+            youtubeEnabled: youtubeEnabled,
           }));
         };
         reader.readAsDataURL(blob);
@@ -950,6 +951,8 @@ const ContentState = (props) => {
         webm: blob,
         ready: true,
         isFfmpegRunning: false,
+        driveEnabled: driveEnabled,
+        youtubeEnabled: youtubeEnabled,
       }));
       chrome.runtime.sendMessage({ type: "recording-complete" });
     }
@@ -971,6 +974,8 @@ const ContentState = (props) => {
             ready: true,
             noffmpeg: true,
             isFfmpegRunning: false,
+            driveEnabled: driveEnabled,
+            youtubeEnabled: youtubeEnabled,
           };
         });
         chrome.runtime.sendMessage({ type: "recording-complete" });

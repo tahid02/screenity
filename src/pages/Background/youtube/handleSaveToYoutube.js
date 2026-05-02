@@ -65,10 +65,12 @@ const getAuthTokenFromStorage = async () => {
   });
 };
 
-const saveToYoutube = async (videoBlob, fileName) => {
+const saveToYoutube = async (videoBlob, fileName, retried = false) => {
+  let usedToken;
   try {
-    const token = await getAuthTokenFromStorage();
-    if (!token) throw new Error("Sign-in failed");
+    usedToken = await getAuthTokenFromStorage();
+    if (!usedToken) throw new Error("Sign-in failed");
+    const token = usedToken;
 
     diagEvent("youtube-upload-start", {
       blobSize: videoBlob.size,
@@ -147,6 +149,13 @@ const saveToYoutube = async (videoBlob, fileName) => {
 
     return { status: "ok", videoId };
   } catch (error) {
+    if (!retried && /\b401\b/.test(error.message)) {
+      if (usedToken) {
+        await new Promise((res) => chrome.identity.removeCachedAuthToken({ token: usedToken }, res));
+      }
+      await chrome.storage.local.set({ youtubeToken: null });
+      return saveToYoutube(videoBlob, fileName, true);
+    }
     console.error("[YouTube] youtube_upload_failed:", error.message);
     diagEvent("youtube-upload-fail", {
       error: String(error.message).slice(0, 120),

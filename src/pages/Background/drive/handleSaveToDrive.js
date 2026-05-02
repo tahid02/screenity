@@ -111,10 +111,12 @@ const getAuthTokenFromStorage = async () => {
   });
 };
 
-const saveToDrive = async (videoBlob, fileName) => {
+const saveToDrive = async (videoBlob, fileName, retried = false) => {
+  let usedToken;
   try {
-    const token = await getAuthTokenFromStorage();
-    if (!token) throw new Error("Sign-in failed");
+    usedToken = await getAuthTokenFromStorage();
+    if (!usedToken) throw new Error("Sign-in failed");
+    const token = usedToken;
 
     diagEvent("drive-upload-start", {
       blobSize: videoBlob.size,
@@ -183,6 +185,13 @@ const saveToDrive = async (videoBlob, fileName) => {
 
     return { status: "ok", url: fileId };
   } catch (error) {
+    if (!retried && /\b401\b/.test(error.message)) {
+      if (usedToken) {
+        await new Promise((res) => chrome.identity.removeCachedAuthToken({ token: usedToken }, res));
+      }
+      await chrome.storage.local.set({ token: null });
+      return saveToDrive(videoBlob, fileName, true);
+    }
     console.error("[Drive] drive_upload_failed:", error.message);
     diagEvent("drive-upload-fail", { error: String(error.message).slice(0, 120) });
     return { status: "ew", url: null, error: error.message };
