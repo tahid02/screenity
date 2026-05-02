@@ -179,6 +179,7 @@ const ContentState = (props) => {
     fromCropper: false,
     base64: null,
     saveDrive: false,
+    saveYoutube: false,
     downloading: false,
     downloadingWEBM: false,
     downloadingGIF: false,
@@ -193,6 +194,7 @@ const ContentState = (props) => {
     offline: false,
     updateChrome: false,
     driveEnabled: false,
+    youtubeEnabled: false,
     hasBeenEdited: false,
     dragInteracted: false,
     noffmpeg: false,
@@ -809,12 +811,17 @@ const ContentState = (props) => {
     }
 
     // Check if token is present
-    const { token } = await chrome.storage.local.get("token");
+    const { token, youtubeToken } = await chrome.storage.local.get(["token", "youtubeToken"]);
 
     let driveEnabled = false;
+    let youtubeEnabled = false;
 
     if (token && token !== null) {
       driveEnabled = true;
+    }
+
+    if (youtubeToken && youtubeToken !== null) {
+      youtubeEnabled = true;
     }
 
     const safeDuration = Number(recordingDuration) || 0;
@@ -859,6 +866,7 @@ const ContentState = (props) => {
                   ...prevContentState,
                   base64: base64data,
                   driveEnabled: driveEnabled,
+                  youtubeEnabled: youtubeEnabled,
                 }));
               };
               reader.readAsDataURL(fixedWebm);
@@ -1223,6 +1231,18 @@ const ContentState = (props) => {
           saveDrive: false,
           driveEnabled: true,
           saved: true,
+        }));
+      } else if (message.type === "saved-to-youtube") {
+        setContentState((prevContentState) => ({
+          ...prevContentState,
+          saveYoutube: false,
+          youtubeEnabled: true,
+          saved: true,
+        }));
+      } else if (message.type === "youtube-upload-error") {
+        setContentState((prevContentState) => ({
+          ...prevContentState,
+          saveYoutube: false,
         }));
       } else if (message.type === "restore-recording") {
         setContentState((prevContentState) => ({

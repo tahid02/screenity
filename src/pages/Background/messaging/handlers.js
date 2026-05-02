@@ -66,6 +66,8 @@ import {
 import { newChunk, clearAllRecordings } from "../recording/chunkHandler";
 import { setMicActiveTab } from "../tabManagement/tabHelpers";
 import { handleSignOutDrive } from "../drive/handleSignOutDrive";
+import { handleSaveToYoutube } from "../youtube/handleSaveToYoutube";
+import { handleSignOutYoutube } from "../youtube/handleSignOutYoutube";
 import { loginWithWebsite } from "../auth/loginWithWebsite";
 import {
   getDiagnosticLog,
@@ -1178,6 +1180,8 @@ export const setupHandlers = () => {
   registerMessage("pip-ended", () => handlePip(false));
   registerMessage("pip-started", () => handlePip(true));
   registerMessage("sign-out-drive", (message) => handleSignOutDrive(message));
+  registerMessage("save-to-youtube", async (message) => await handleSaveToYoutube(message));
+  registerMessage("sign-out-youtube", async (message) => await handleSignOutYoutube(message));
   registerMessage("open-help", () =>
     createTab("https://help.screenity.io/", true, true),
   );

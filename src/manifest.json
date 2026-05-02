@@ -50,8 +50,11 @@
     }
   ],
   "oauth2": {
-    "client_id": "560517327251-m7n1k3kddknu7s9s4ejvrs1bj91gutd7.apps.googleusercontent.com",
-    "scopes": ["https://www.googleapis.com/auth/drive.file"]
+    "client_id": "623904489302-ikr4b4kfilfg5upiefurb5hovjt3kuke.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.file",
+      "https://www.googleapis.com/auth/youtube.upload"
+    ]
   },
   "cross_origin_embedder_policy": {
     "value": "require-corp"
@@ -123,5 +126,6 @@
     "desktopCapture",
     "alarms",
     "clipboardWrite"
-  ]
+  ],
+  "key":"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmlc/OEoSGz43VjZvkFrrgFaevhK4jf1E1ox308XcVCH6PWuKQs2fIwyDcsntgABZJaeTraQog49y7GEqI46nwU183XWy8SwEZLWVb2HkUY+6zJFWOtxQyOrQaUGH6fMAdCRkHrQ2bKd+bsE9nC+/Jxmx9ydv8HIPJjKPWPbZUoIvlfVJufta4liD3gCxOSybhps3xBeUJxz/oRj33Y2xeGtv9sgOOyAR3brS7Kn4RnFU/zlbpyHS96DW+WdP/aR6Uw8f6UBYB+0mjpg+iIkRmddb3L5biX5/4KeC1CUGwdyazEERG9RF5qZ/sYjuBmkgrq6zFzlNGVZWJ4HS1XkkXQIDAQAB"
 }

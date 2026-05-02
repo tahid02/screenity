@@ -1580,5 +1580,25 @@
   "cancelButton": {
     "message": "취소",
     "description": "Generic cancel button label"
+  },
+  "signOutYoutubeLabel": {
+    "message": "Sign out of YouTube",
+    "description": "Sign out of YouTube label"
+  },
+  "savingYoutubeLabel": {
+    "message": "Uploading...",
+    "description": "Uploading to YouTube label"
+  },
+  "saveYoutubeButtonTitle": {
+    "message": "Upload to YouTube",
+    "description": "Upload to YouTube button"
+  },
+  "saveYoutubeButtonDescription": {
+    "message": "Upload the recording as a private video to YouTube",
+    "description": "Upload to YouTube label"
+  },
+  "signInYoutubeLabel": {
+    "message": "Sign in and upload to YouTube",
+    "description": "Sign in to YouTube label"
   }
 }

@@ -155,6 +155,79 @@ const RightPanel = () => {
     }));
   };
 
+  const saveToYoutube = () => {
+    setContentState((prevContentState) => ({
+      ...prevContentState,
+      saveYoutube: true,
+    }));
+
+    // YouTube requires MP4 — do not use WebM or fallback
+    if (contentState.noffmpeg || !contentState.mp4ready || !contentState.blob) {
+      console.error("[YouTube] youtube_save_failed: MP4 not ready");
+      setContentState((prevContentState) => ({
+        ...prevContentState,
+        saveYoutube: false,
+      }));
+      chrome.runtime.sendMessage({
+        type: "youtube-upload-error",
+        error: "YouTube requires MP4. Please wait for processing to complete.",
+      });
+      return;
+    }
+
+    const handleYoutubeResponse = (response) => {
+      if (!response || response.status === "error" || response.error) {
+        console.error("[YouTube] youtube_save_failed:", response?.error || "unknown error");
+        setContentState((prevContentState) => ({
+          ...prevContentState,
+          saveYoutube: false,
+        }));
+      }
+      // On success, saveYoutube is reset by the "saved-to-youtube" message from background
+    };
+
+    const handleYoutubeError = (err) => {
+      console.error("[YouTube] youtube_save_error:", err);
+      setContentState((prevContentState) => ({
+        ...prevContentState,
+        saveYoutube: false,
+      }));
+    };
+
+    // Blob to base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(",")[1];
+
+      chrome.runtime
+        .sendMessage({
+          type: "save-to-youtube",
+          base64: base64,
+          title: contentState.title,
+          isWebm: false,
+        })
+        .then(handleYoutubeResponse)
+        .catch(handleYoutubeError);
+    };
+    reader.onerror = () => {
+      console.error("[YouTube] FileReader failed to read blob for YouTube upload");
+      setContentState((prevContentState) => ({
+        ...prevContentState,
+        saveYoutube: false,
+      }));
+    };
+    reader.readAsDataURL(contentState.blob);
+  };
+
+  const signOutYoutube = () => {
+    chrome.runtime.sendMessage({ type: "sign-out-youtube" });
+    setContentState((prevContentState) => ({
+      ...prevContentState,
+      youtubeEnabled: false,
+    }));
+  };
+
   const handleEdit = () => {
     if (
       contentState.duration > contentState.editLimit &&
@@ -811,6 +884,45 @@ const RightPanel = () => {
                       : contentState.updateChrome
                       ? chrome.i18n.getMessage("notAvailableLabel")
                       : chrome.i18n.getMessage("saveDriveButtonDescription")}
+                  </div>
+                </div>
+                <div className={styles.buttonRight}>
+                  <ReactSVG src={URL + "editor/icons/right-arrow.svg"} />
+                </div>
+              </div>
+              {contentState.youtubeEnabled && (
+                <div
+                  className={styles.buttonLogout}
+                  onClick={() => {
+                    signOutYoutube();
+                  }}
+                >
+                  {chrome.i18n.getMessage("signOutYoutubeLabel")}
+                </div>
+              )}
+              <div
+                role="button"
+                className={styles.button}
+                onClick={saveToYoutube}
+                disabled={contentState.saveYoutube || (!contentState.mp4ready && !contentState.youtubeEnabled)}
+              >
+                <div className={styles.buttonLeft}>
+                  <ReactSVG src={URL + "editor/icons/youtube.svg"} />
+                </div>
+                <div className={styles.buttonMiddle}>
+                  <div className={styles.buttonTitle}>
+                    {contentState.saveYoutube
+                      ? chrome.i18n.getMessage("savingYoutubeLabel")
+                      : contentState.youtubeEnabled
+                      ? chrome.i18n.getMessage("saveYoutubeButtonTitle")
+                      : chrome.i18n.getMessage("signInYoutubeLabel")}
+                  </div>
+                  <div className={styles.buttonDescription}>
+                    {contentState.offline
+                      ? chrome.i18n.getMessage("noConnectionLabel")
+                      : contentState.updateChrome
+                      ? chrome.i18n.getMessage("notAvailableLabel")
+                      : chrome.i18n.getMessage("saveYoutubeButtonDescription")}
                   </div>
                 </div>
                 <div className={styles.buttonRight}>
