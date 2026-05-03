@@ -27,6 +27,7 @@ import {
 /* Component import */
 import RecordingTab from "./layout/RecordingTab";
 import VideosTab from "./layout/VideosTab";
+import ScreenshotTab from "./layout/ScreenshotTab";
 
 // Layouts
 import SettingsMenu from "./layout/SettingsMenu";
@@ -56,6 +57,7 @@ const PopupContainer = (props) => {
   const [showProSplash, setShowProSplash] = useState(false);
   const [open, setOpen] = useState(false);
   const recordTabRef = useRef(null);
+  const screenshotTabRef = useRef(null);
   const videoTabRef = useRef(null);
   const pillRef = useRef(null);
   const [URL, setURL] = useState("https://help.screenity.io/");
@@ -176,11 +178,17 @@ const PopupContainer = (props) => {
   );
 
   useLayoutEffect(() => {
-    if (!recordTabRef.current || !videoTabRef.current || !pillRef.current)
+    if (!recordTabRef.current || !screenshotTabRef.current || !videoTabRef.current || !pillRef.current)
       return;
 
-    const tabRef =
-      tab === "record" ? recordTabRef.current : videoTabRef.current;
+    let tabRef;
+    if (tab === "record") {
+      tabRef = recordTabRef.current;
+    } else if (tab === "screenshot") {
+      tabRef = screenshotTabRef.current;
+    } else {
+      tabRef = videoTabRef.current;
+    }
 
     pillRef.current.style.left = `${tabRef.offsetLeft}px`;
     pillRef.current.style.width = `${tabRef.getBoundingClientRect().width}px`;
@@ -353,10 +361,14 @@ const PopupContainer = (props) => {
 
   useEffect(() => {
     requestAnimationFrame(() => {
-      const tabRef =
-        contentState.bigTab === "record"
-          ? recordTabRef.current
-          : videoTabRef.current;
+      let tabRef;
+      if (contentState.bigTab === "record") {
+        tabRef = recordTabRef.current;
+      } else if (contentState.bigTab === "screenshot") {
+        tabRef = screenshotTabRef.current;
+      } else {
+        tabRef = videoTabRef.current;
+      }
 
       if (tabRef && pillRef.current) {
         pillRef.current.style.left = `${tabRef.offsetLeft}px`;
@@ -661,6 +673,17 @@ const PopupContainer = (props) => {
                   </Tabs.Trigger>
                   <Tabs.Trigger
                     className="TabsTrigger tl"
+                    value="screenshot"
+                    ref={screenshotTabRef}
+                    tabIndex={0}
+                  >
+                    <div className="TabsTriggerIcon">
+                      <span style={{ fontSize: "18px" }}>📸</span>
+                    </div>
+                    Screenshot
+                  </Tabs.Trigger>
+                  <Tabs.Trigger
+                    className="TabsTrigger tl"
                     value="dashboard"
                     ref={videoTabRef}
                     tabIndex={0}
@@ -679,6 +702,9 @@ const PopupContainer = (props) => {
                 </Tabs.List>
                 <Tabs.Content className="TabsContent tl" value="record">
                   <RecordingTab shadowRef={props.shadowRef} />
+                </Tabs.Content>
+                <Tabs.Content className="TabsContent tl" value="screenshot">
+                  <ScreenshotTab />
                 </Tabs.Content>
                 <Tabs.Content className="TabsContent tl" value="dashboard">
                   <VideosTab shadowRef={props.shadowRef} />
