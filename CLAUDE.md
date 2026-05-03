@@ -16,6 +16,24 @@ The extension supports:
 
 Key repo: https://github.com/alyssaxuu/screenity
 
+## ⚠️ Screenshot Feature Development (MANDATORY RULES)
+
+This project is implementing a screenshot feature with annotation capabilities as a completely isolated subsystem. 
+
+**🚨 ALL TEAM MEMBERS: You MUST follow the isolation rules in [SCREENSHOT_ISOLATION_RULES.md](SCREENSHOT_ISOLATION_RULES.md) when working on screenshot features.**
+
+**Key Rules (TL;DR):**
+- ✅ All screenshot code lives in `src/screenshot/` directory (parallel structure to `src/pages/`)
+- ✅ Code duplication is preferred over shared imports (copy files if they need modification)
+- ✅ Use `screenshot_` prefix for all storage keys, message actions, and CSS classes
+- ✅ Only import screenshot code INTO core files (`src/pages/`) — never the reverse
+- ✅ Make minimal changes to core recording files (only for mandatory MV3 requirements)
+- ✅ Feature can be safely deleted by removing `src/screenshot/` + 3-5 lines from core files
+
+**For detailed rules, exceptions, and examples:** See [SCREENSHOT_ISOLATION_RULES.md](SCREENSHOT_ISOLATION_RULES.md)
+
+---
+
 ## Architecture
 
 ### Extension Structure (Manifest V3)
@@ -263,6 +281,74 @@ diagEvent("recordingStarted", { codec: "vp8", audioTrack: true });
 ```
 
 Logs are indexed by flow and searchable via DevHUD in content script.
+
+### Screenshot Feature Patterns (REQUIRED READING)
+
+**🚨 When working on screenshot features, you MUST follow [SCREENSHOT_ISOLATION_RULES.md](SCREENSHOT_ISOLATION_RULES.md)**
+
+Key patterns for screenshot development:
+
+```javascript
+// 1. Screenshot message handling (separate from recording)
+// src/screenshot/pages/Background/handlers.js
+export function handleScreenshotCapture(message, sender) {
+  // Only screenshot-specific logic
+  // Storage keys use screenshot_* prefix
+  chrome.storage.local.set({ screenshot_captured: { ... } });
+}
+
+// 2. Screenshot storage (namespaced)
+chrome.storage.local.get("screenshot_history")    // ✅ OK
+chrome.storage.local.get("screenshot_settings")   // ✅ OK
+chrome.storage.local.get("recordingState")        // ❌ Don't touch recording state
+
+// 3. Screenshot message actions (namespaced)
+chrome.runtime.sendMessage({ 
+  action: "screenshot_capture",     // ✅ OK
+  payload: { ... } 
+});
+
+// 4. Screenshot CSS classes (namespaced)
+<div className="screenity-screenshot-editor-toolbar">  {/* ✅ OK */}
+<div className="screenity-recorder-ui">               {/* ❌ Don't use recorder classes */}
+
+// 5. Code reuse strategy
+// ❌ DON'T: import from src/pages/EditorWebCodecs/components/DrawingCanvas.jsx
+// ✅ DO: Copy to src/screenshot/pages/ScreenshotEditor/components/DrawingCanvas.jsx
+//        and modify your copy independently
+```
+
+**Directory Structure for Screenshots:**
+```
+src/screenshot/
+├── pages/
+│   ├── Background/
+│   │   ├── handlers.js          # Screenshot message handlers
+│   │   ├── captureManager.js    # Orchestrate capture
+│   │   └── storage.js           # Screenshot state management
+│   ├── Content/
+│   │   ├── overlays.jsx         # Screenshot capture UI
+│   │   └── listeners.js         # Screenshot-specific event handlers
+│   ├── ScreenshotCapture/       # Mode selector page
+│   │   ├── index.jsx
+│   │   └── index.html
+│   └── ScreenshotEditor/        # Annotation editor page
+│       ├── index.jsx
+│       └── index.html
+├── utils/                        # Screenshot-only utilities
+├── hooks/                        # Screenshot-only React hooks
+└── constants.js
+```
+
+**Checklist Before Committing:**
+- [ ] All code in `src/screenshot/` (except minimal core imports)
+- [ ] All storage keys use `screenshot_*` prefix
+- [ ] All message actions use `screenshot_*` prefix
+- [ ] All CSS classes use `screenity-screenshot-*` prefix
+- [ ] No imports from `src/pages/recording/*` or `src/pages/Recorder/`
+- [ ] Feature can be deleted by removing `src/screenshot/` + 3-5 lines from core files
+
+---
 
 ## Common Development Tasks
 
