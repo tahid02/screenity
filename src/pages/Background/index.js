@@ -5,6 +5,7 @@ import {
   messageDispatcher,
 } from "../../messaging/messageRouter";
 import { hydrateDiagnosticLog, diagEvent } from "../utils/diagnosticLog";
+import { registerScreenshotHandlers } from "../../screenshot/pages/Background/handlers";
 
 // Clear any storage flags that act as in-progress locks and could have been
 // left in a "true" state if the service worker was killed mid-operation.
@@ -73,6 +74,7 @@ const clearStaleLocks = async () => {
 messageRouter();
 initializeListeners();
 setupHandlers();
+registerScreenshotHandlers();
 
 // Fire-and-forget: clears stale locks from a previous crashed session.
 // Runs after listener registration (required synchronous) but before Chrome

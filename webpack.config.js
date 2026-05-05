@@ -68,12 +68,25 @@ const entryPoints = {
     "index.jsx"
   ),
   backup: path.join(__dirname, "src", "pages", "Backup", "index.jsx"),
+  screenshotviewer: path.join(
+    __dirname,
+    "src",
+    "screenshot",
+    "pages",
+    "ScreenshotViewer",
+    "index.jsx"
+  ),
 };
 
 const htmlPlugins = Object.keys(entryPoints)
   .map((entryName) => {
-    // Skip background script as it doesn't need an HTML file
-    if (entryName === "background" || entryName === "contentScript") {
+    // Skip entries that don't need auto-generated HTML (background, content script,
+    // and screenshot pages whose templates live outside src/pages/)
+    if (
+      entryName === "background" ||
+      entryName === "contentScript" ||
+      entryName === "screenshotviewer"
+    ) {
       return null;
     }
 
@@ -279,6 +292,20 @@ const config = {
       ],
     }),
     ...htmlPlugins,
+    new HtmlWebpackPlugin({
+      template: path.join(
+        __dirname,
+        "src",
+        "screenshot",
+        "pages",
+        "ScreenshotViewer",
+        "index.html"
+      ),
+      filename: "screenshotviewer.html",
+      chunks: ["screenshotviewer"],
+      favicon: path.join(__dirname, "src", "assets", "favicon.png"),
+      cache: true,
+    }),
   ],
 };
 
