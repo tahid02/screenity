@@ -76,6 +76,14 @@ const entryPoints = {
     "ScreenshotViewer",
     "index.jsx"
   ),
+  screenshotContentScript: path.join(
+    __dirname,
+    "src",
+    "screenshot",
+    "pages",
+    "Content",
+    "index.jsx"
+  ),
 };
 
 const htmlPlugins = Object.keys(entryPoints)
@@ -85,7 +93,8 @@ const htmlPlugins = Object.keys(entryPoints)
     if (
       entryName === "background" ||
       entryName === "contentScript" ||
-      entryName === "screenshotviewer"
+      entryName === "screenshotviewer" ||
+      entryName === "screenshotContentScript"
     ) {
       return null;
     }
