@@ -85,12 +85,16 @@ const ScreenshotViewer = () => {
   const [dataUrl, setDataUrl] = useState(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState("viewport");
 
   useEffect(() => {
     chrome.storage.local.get("screenshot_captured", (result) => {
       const captured = result.screenshot_captured;
       if (captured?.dataUrl) {
         setDataUrl(captured.dataUrl);
+        if (captured.source) {
+          setSource(captured.source);
+        }
         // Remove from storage immediately after reading
         chrome.storage.local.remove("screenshot_captured");
       }
@@ -127,7 +131,7 @@ const ScreenshotViewer = () => {
   return (
     <div style={pageStyle}>
       <div style={toolbarStyle}>
-        <span style={titleStyle}>Screenshot · Visible Part</span>
+        <span style={titleStyle}>Screenshot · {source === "selected_area" ? "Selected Area" : "Visible Part"}</span>
         {dataUrl && (
           <>
             <button style={copyBtnStyle} onClick={handleCopy}>

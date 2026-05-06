@@ -9,9 +9,13 @@ const ScreenshotTab = () => {
   const [contentState, setContentState] = useContext(contentStateContext);
 
   const handleModeClick = (modeId) => {
-    if (modeId !== "visible-part") return;
-    setContentState((prev) => ({ ...prev, showPopup: false, showExtension: false }));
-    chrome.storage.local.set({ screenshot_mode: "viewport_overlay" });
+    if (modeId === "visible-part") {
+      setContentState((prev) => ({ ...prev, showPopup: false, showExtension: false }));
+      chrome.storage.local.set({ screenshot_mode: "viewport_overlay" });
+    } else if (modeId === "selected-area") {
+      setContentState((prev) => ({ ...prev, showPopup: false, showExtension: false }));
+      chrome.storage.local.set({ screenshot_mode: "select_area" });
+    }
   };
 
   // Hide toolbar when screenshot tab is active

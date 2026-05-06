@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import VisiblePartOverlay from "./VisiblePartOverlay";
+import SelectedAreaOverlay from "./SelectedAreaOverlay";
 
 export function mountScreenshotOverlay() {
   if (document.getElementById("screenity-screenshot-overlay-root")) return;
@@ -13,5 +14,10 @@ export function mountScreenshotOverlay() {
   document.body.appendChild(container);
 
   const root = createRoot(container);
-  root.render(<VisiblePartOverlay />);
+  root.render(
+    <>
+      <VisiblePartOverlay />
+      <SelectedAreaOverlay />
+    </>
+  );
 }
