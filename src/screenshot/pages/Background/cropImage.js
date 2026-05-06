@@ -3,12 +3,17 @@ export async function cropImage(dataUrl, sx, sy, sw, sh) {
   const blob = await response.blob();
   const bitmap = await createImageBitmap(blob);
 
-  const safeW = Math.max(1, Math.round(sw));
-  const safeH = Math.max(1, Math.round(sh));
+  const imgW = bitmap.width;
+  const imgH = bitmap.height;
 
-  const canvas = new OffscreenCanvas(safeW, safeH);
+  const cx = Math.max(0, Math.min(Math.round(sx), imgW));
+  const cy = Math.max(0, Math.min(Math.round(sy), imgH));
+  const cw = Math.max(1, Math.min(Math.round(sw), imgW - cx));
+  const ch = Math.max(1, Math.min(Math.round(sh), imgH - cy));
+
+  const canvas = new OffscreenCanvas(cw, ch);
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(bitmap, sx, sy, safeW, safeH, 0, 0, safeW, safeH);
+  ctx.drawImage(bitmap, cx, cy, cw, ch, 0, 0, cw, ch);
 
   const croppedBlob = await canvas.convertToBlob({ type: "image/png" });
   return new Promise((resolve) => {

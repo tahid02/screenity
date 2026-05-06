@@ -113,6 +113,23 @@ const dismissBtnStyle = {
   justifyContent: "center",
 };
 
+const clampToViewport = (rect) => {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  let { x, y, width, height } = rect;
+
+  if (x + width > vw) {
+    x = Math.max(0, vw - width);
+  }
+  if (y + height > vh) {
+    y = Math.max(0, vh - height);
+  }
+  width = Math.min(width, vw - x);
+  height = Math.min(height, vh - y);
+
+  return { x, y, width: Math.max(width, 10), height: Math.max(height, 10) };
+};
+
 const SelectedAreaOverlay = () => {
   const [active, setActive] = useState(false);
   const [capturing, setCapturing] = useState(false);
@@ -134,7 +151,7 @@ const SelectedAreaOverlay = () => {
           setActive(true);
           chrome.storage.local.get("screenshot_last_selected_area", (res) => {
             if (res.screenshot_last_selected_area) {
-              setSelectionRect(res.screenshot_last_selected_area);
+              setSelectionRect(clampToViewport(res.screenshot_last_selected_area));
               setIsFixed(true);
             }
           });
@@ -151,7 +168,7 @@ const SelectedAreaOverlay = () => {
         setActive(true);
         chrome.storage.local.get("screenshot_last_selected_area", (res) => {
           if (res.screenshot_last_selected_area) {
-            setSelectionRect(res.screenshot_last_selected_area);
+            setSelectionRect(clampToViewport(res.screenshot_last_selected_area));
             setIsFixed(true);
           }
         });
