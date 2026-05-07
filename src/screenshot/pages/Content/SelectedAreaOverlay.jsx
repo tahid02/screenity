@@ -481,7 +481,7 @@ const SelectedAreaOverlay = () => {
         style={{
           ...overlayBaseStyle,
           cursor: isFixed ? "default" : "crosshair",
-          pointerEvents: isFixed ? "none" : "auto",
+          pointerEvents: "auto",
           backgroundColor: hasSelection ? "transparent" : "rgba(0, 0, 0, 0.15)",
         }}
         onMouseDown={handleMouseDown}
