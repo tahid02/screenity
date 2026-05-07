@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Rnd } from "react-rnd";
 
 const BLUE = "#567BDA";
+const HANDLE_SIZE = 12;
+const EDGE_HIT = 8;
+const MIN_SIZE = 10;
 
 const overlayBaseStyle = {
   position: "fixed",
@@ -113,6 +115,24 @@ const dismissBtnStyle = {
   justifyContent: "center",
 };
 
+const cornerHandleStyle = {
+  position: "fixed",
+  width: HANDLE_SIZE,
+  height: HANDLE_SIZE,
+  backgroundColor: BLUE,
+  borderRadius: "3px",
+  pointerEvents: "auto",
+  zIndex: 2147483647,
+  boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+};
+
+const edgeHandleStyle = {
+  position: "fixed",
+  backgroundColor: "transparent",
+  pointerEvents: "auto",
+  zIndex: 2147483647,
+};
+
 const clampToViewport = (rect) => {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
@@ -127,8 +147,61 @@ const clampToViewport = (rect) => {
   width = Math.min(width, vw - x);
   height = Math.min(height, vh - y);
 
-  return { x, y, width: Math.max(width, 10), height: Math.max(height, 10) };
+  return { x, y, width: Math.max(width, MIN_SIZE), height: Math.max(height, MIN_SIZE) };
 };
+
+const RESIZE_DIRS = {
+  topLeft: { cursor: "nwse-resize", edgeX: "start", edgeY: "start" },
+  top: { cursor: "ns-resize", edgeX: null, edgeY: "start" },
+  topRight: { cursor: "nesw-resize", edgeX: "end", edgeY: "start" },
+  right: { cursor: "ew-resize", edgeX: "end", edgeY: null },
+  bottomRight: { cursor: "nwse-resize", edgeX: "end", edgeY: "end" },
+  bottom: { cursor: "ns-resize", edgeX: null, edgeY: "end" },
+  bottomLeft: { cursor: "nesw-resize", edgeX: "start", edgeY: "end" },
+  left: { cursor: "ew-resize", edgeX: "start", edgeY: null },
+};
+
+function getHandlePositions(rect) {
+  const { x, y, width, height } = rect;
+  const h = HANDLE_SIZE;
+  const e = EDGE_HIT;
+  const half = h / 2;
+  const edgeHalf = e / 2;
+  return {
+    topLeft: { left: x - half, top: y - half, style: "corner" },
+    top: {
+      left: x + h,
+      top: y - edgeHalf,
+      width: Math.max(width - h * 2, h),
+      height: e,
+      style: "edgeH",
+    },
+    topRight: { left: x + width - half, top: y - half, style: "corner" },
+    right: {
+      left: x + width - edgeHalf,
+      top: y + h,
+      width: e,
+      height: Math.max(height - h * 2, h),
+      style: "edgeV",
+    },
+    bottomRight: { left: x + width - half, top: y + height - half, style: "corner" },
+    bottom: {
+      left: x + h,
+      top: y + height - edgeHalf,
+      width: Math.max(width - h * 2, h),
+      height: e,
+      style: "edgeH",
+    },
+    bottomLeft: { left: x - half, top: y + height - half, style: "corner" },
+    left: {
+      left: x - edgeHalf,
+      top: y + h,
+      width: e,
+      height: Math.max(height - h * 2, h),
+      style: "edgeV",
+    },
+  };
+}
 
 const SelectedAreaOverlay = () => {
   const [active, setActive] = useState(false);
@@ -142,6 +215,10 @@ const SelectedAreaOverlay = () => {
     width: 0,
     height: 0,
   });
+  const [resizingDir, setResizingDir] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const resizeStartRef = useRef(null);
+  const dragStartRef = useRef(null);
   const overlayRef = useRef(null);
 
   useEffect(() => {
@@ -238,22 +315,117 @@ const SelectedAreaOverlay = () => {
     }
   }, [isDrawing, selectionRect]);
 
-  const handleRectDrag = useCallback((e, d) => {
-    setSelectionRect((prev) => ({
-      ...prev,
-      x: d.x,
-      y: d.y,
-    }));
-  }, []);
+  const handleResizeStart = useCallback((e, dir) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingDir(dir);
+    resizeStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startRect: { ...selectionRect },
+    };
+  }, [selectionRect]);
 
-  const handleRectResize = useCallback((e, direction, ref, delta, position) => {
-    setSelectionRect({
-      x: position.x,
-      y: position.y,
-      width: ref.offsetWidth,
-      height: ref.offsetHeight,
-    });
-  }, []);
+  const handleDragStart = useCallback((e) => {
+    if (resizingDir) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startRect: { ...selectionRect },
+    };
+  }, [resizingDir, selectionRect]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const onMouseMove = (e) => {
+      const dx = e.clientX - dragStartRef.current.startX;
+      const dy = e.clientY - dragStartRef.current.startY;
+      const sr = dragStartRef.current.startRect;
+
+      let x = sr.x + dx;
+      let y = sr.y + dy;
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      x = Math.max(0, Math.min(x, vw - sr.width));
+      y = Math.max(0, Math.min(y, vh - sr.height));
+
+      setSelectionRect({ ...sr, x, y });
+    };
+
+    const onMouseUp = () => {
+      setIsDragging(false);
+      dragStartRef.current = null;
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [isDragging]);
+
+  useEffect(() => {
+    if (!resizingDir) return;
+    const dirInfo = RESIZE_DIRS[resizingDir];
+    const start = resizeStartRef.current;
+
+    const onMouseMove = (e) => {
+      const dx = e.clientX - start.startX;
+      const dy = e.clientY - start.startY;
+      const sr = start.startRect;
+      let { x, y, width, height } = sr;
+
+      if (dirInfo.edgeX === "start") {
+        x = sr.x + dx;
+        width = sr.width - dx;
+      } else if (dirInfo.edgeX === "end") {
+        width = sr.width + dx;
+      }
+      if (dirInfo.edgeY === "start") {
+        y = sr.y + dy;
+        height = sr.height - dy;
+      } else if (dirInfo.edgeY === "end") {
+        height = sr.height + dy;
+      }
+
+      if (width < MIN_SIZE) {
+        if (dirInfo.edgeX === "start") x = sr.x + sr.width - MIN_SIZE;
+        width = MIN_SIZE;
+      }
+      if (height < MIN_SIZE) {
+        if (dirInfo.edgeY === "start") y = sr.y + sr.height - MIN_SIZE;
+        height = MIN_SIZE;
+      }
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      x = Math.max(0, x);
+      y = Math.max(0, y);
+      if (x + width > vw) width = vw - x;
+      if (y + height > vh) height = vh - y;
+
+      setSelectionRect({ x, y, width: Math.max(width, MIN_SIZE), height: Math.max(height, MIN_SIZE) });
+    };
+
+    const onMouseUp = () => {
+      setResizingDir(null);
+      resizeStartRef.current = null;
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [resizingDir]);
 
   const handleResetSelection = useCallback(() => {
     setIsFixed(false);
@@ -299,6 +471,7 @@ const SelectedAreaOverlay = () => {
 
   const hasSelection = isFixed || isDrawing;
   const showFixedUI = isFixed && !isDrawing;
+  const handlePositions = showFixedUI ? getHandlePositions(selectionRect) : null;
 
   return (
     <>
@@ -343,35 +516,63 @@ const SelectedAreaOverlay = () => {
           )}
 
           {showFixedUI && (
-            <Rnd
-              position={{ x: selectionRect.x, y: selectionRect.y }}
-              size={{ width: selectionRect.width, height: selectionRect.height }}
-              minWidth={10}
-              minHeight={10}
-              onDrag={handleRectDrag}
-              onResize={handleRectResize}
-              style={{
-                zIndex: 2147483646,
-              }}
-            >
+            <>
               <div
                 className="screenity-screenshot-area-rect"
                 style={{
-                  width: "100%",
-                  height: "100%",
+                  position: "fixed",
+                  left: selectionRect.x,
+                  top: selectionRect.y,
+                  width: selectionRect.width,
+                  height: selectionRect.height,
+                  zIndex: 2147483646,
                   boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.35)",
                   border: `2px solid ${BLUE}`,
                   borderRadius: "2px",
                   pointerEvents: "auto",
-                  position: "relative",
+                  cursor: isDragging ? "grabbing" : "grab",
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
                 }}
+                onMouseDown={handleDragStart}
               >
                 <div style={dimBadgeStyle}>
                   {Math.round(selectionRect.width)} ×{" "}
                   {Math.round(selectionRect.height)}
                 </div>
               </div>
-            </Rnd>
+
+              {handlePositions && Object.entries(RESIZE_DIRS).map(([dir, info]) => {
+                const pos = handlePositions[dir];
+                if (pos.style === "corner") {
+                  return (
+                    <div
+                      key={dir}
+                      className="screenity-screenshot-resize-handle"
+                      style={{
+                        ...cornerHandleStyle,
+                        left: pos.left,
+                        top: pos.top,
+                        cursor: info.cursor,
+                      }}
+                      onMouseDown={(e) => handleResizeStart(e, dir)}
+                    />
+                  );
+                }
+                return (
+                  <div
+                    key={dir}
+                    className="screenity-screenshot-resize-handle"
+                    style={{
+                      ...edgeHandleStyle,
+                      ...pos,
+                      cursor: info.cursor,
+                    }}
+                    onMouseDown={(e) => handleResizeStart(e, dir)}
+                  />
+                );
+              })}
+            </>
           )}
         </>
       )}
