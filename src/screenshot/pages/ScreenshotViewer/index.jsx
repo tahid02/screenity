@@ -131,7 +131,7 @@ const ScreenshotViewer = () => {
   return (
     <div style={pageStyle}>
       <div style={toolbarStyle}>
-        <span style={titleStyle}>Screenshot · {source === "selected_area" ? "Selected Area" : "Visible Part"}</span>
+        <span style={titleStyle}>Screenshot · {source === "selected_area" ? "Selected Area" : source === "full_page" ? "Full Page" : "Visible Part"}</span>
         {dataUrl && (
           <>
             <button style={copyBtnStyle} onClick={handleCopy}>

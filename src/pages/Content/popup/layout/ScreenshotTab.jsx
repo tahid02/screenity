@@ -15,6 +15,9 @@ const ScreenshotTab = () => {
     } else if (modeId === "selected-area") {
       setContentState((prev) => ({ ...prev, showPopup: false, showExtension: false }));
       chrome.storage.local.set({ screenshot_mode: "select_area" });
+    } else if (modeId === "full-page") {
+      setContentState((prev) => ({ ...prev, showPopup: false, showExtension: false }));
+      chrome.storage.local.set({ screenshot_mode: "full_page" });
     }
   };
 

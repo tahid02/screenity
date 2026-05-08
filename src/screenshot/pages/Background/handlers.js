@@ -86,6 +86,40 @@ export function registerScreenshotHandlers() {
     }
   );
 
+  registerMessage("screenshot_capture_segment", async (message, sender) => {
+    try {
+      const windowId = sender.tab?.windowId;
+      if (windowId == null) throw new Error("No windowId in sender");
+      const dataUrl = await chrome.tabs.captureVisibleTab(windowId, {
+        format: "png",
+      });
+      return { success: true, dataUrl };
+    } catch (err) {
+      console.error("[Screenshot] capture_segment failed:", err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  registerMessage("screenshot_fullpage_complete", async (message) => {
+    try {
+      await chrome.storage.local.set({
+        screenshot_captured: {
+          dataUrl: message.dataUrl,
+          timestamp: Date.now(),
+          source: "full_page",
+        },
+      });
+      await chrome.storage.local.remove("screenshot_mode");
+      await chrome.tabs.create({
+        url: chrome.runtime.getURL("screenshotviewer.html"),
+      });
+      return { success: true };
+    } catch (err) {
+      console.error("[Screenshot] fullpage_complete failed:", err);
+      return { success: false, error: err.message };
+    }
+  });
+
   registerMessage("screenshot_dismiss_overlay", async () => {
     await chrome.storage.local.remove("screenshot_mode");
     return { success: true };
