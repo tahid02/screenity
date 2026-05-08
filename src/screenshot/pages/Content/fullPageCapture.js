@@ -19,13 +19,12 @@ export async function captureFullPage(onProgress) {
 
   const dpr = window.devicePixelRatio || 1;
   const viewportH = window.innerHeight;
-  const rawBodyH = document.body.scrollHeight;
-  const rawDocH = document.documentElement.scrollHeight;
-  const totalH = Math.min(Math.max(rawBodyH, rawDocH), MAX_PAGE_HEIGHT);
+  const totalH = Math.min(
+    Math.max(document.body.scrollHeight, document.documentElement.scrollHeight),
+    MAX_PAGE_HEIGHT
+  );
   const originalScrollY = window.scrollY;
   const originalScrollX = window.scrollX;
-
-  console.log("[FullPage] dpr:", dpr, "viewportH:", viewportH, "body.scrollH:", rawBodyH, "doc.scrollH:", rawDocH, "totalH:", totalH);
 
   // Hide all fixed/sticky elements to prevent them appearing at every scroll position.
   // Use visibility:hidden rather than display:none to avoid layout reflow.
@@ -60,8 +59,6 @@ export async function captureFullPage(onProgress) {
     positions[MAX_SEGMENTS - 1] = maxScrollY;
   }
 
-  console.log("[FullPage] positions:", positions, "total segments:", positions.length);
-
   const segments = [];
   let lastCaptureTime = 0;
 
@@ -69,9 +66,6 @@ export async function captureFullPage(onProgress) {
     for (let i = 0; i < positions.length; i++) {
       window.scrollTo({ top: positions[i], left: 0, behavior: "instant" });
       await delay(150); // let layout and paint settle
-
-      const actualScrollY = window.scrollY;
-      console.log(`[FullPage] segment ${i}: requested scrollY=${positions[i]}, actual scrollY=${actualScrollY}`);
 
       // Chrome enforces max 2 captureVisibleTab/sec — enforce 600ms floor
       const gap = Date.now() - lastCaptureTime;
@@ -111,7 +105,6 @@ export async function captureFullPage(onProgress) {
   const imgH = bitmaps[0].height; // viewport height in device pixels
   const canvasW = imgW;
   const canvasH = Math.ceil(totalH * dpr);
-  console.log("[FullPage] stitching", segments.length, "segments. imgW:", imgW, "imgH:", imgH, "canvasW:", canvasW, "canvasH:", canvasH);
 
   const canvas = new OffscreenCanvas(canvasW, canvasH);
   const ctx = canvas.getContext("2d");

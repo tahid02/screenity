@@ -212,12 +212,6 @@ export default function FullPageOverlay() {
     setPhase("capturing");
     setProgress({ step: 0, total: 0 });
 
-    // Wait two animation frames so React commits the re-render (removes the
-    // idle-state blue frame and button) before the first captureVisibleTab call.
-    await new Promise((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(resolve))
-    );
-
     try {
       const finalDataUrl = await captureFullPage(({ step, total, phase: p }) => {
         if (p === "capturing") {
