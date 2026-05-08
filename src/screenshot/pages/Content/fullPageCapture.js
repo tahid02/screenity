@@ -116,10 +116,13 @@ function detectScrollContainer() {
   return bestScore >= CONTAINER_SCORE_THRESHOLD ? bestEl : null;
 }
 
-// Scroll a specific container element, crop each captured frame to its bounds,
-// and stitch the crops into a single canvas.
+// Scroll a specific container element and composite a full-layout screenshot:
+// frame 0 is drawn completely (preserving headers, sidebars, and all surrounding UI),
+// then each subsequent frame contributes only the container's content strip at the
+// correct vertical offset — exactly how tools like GoFullPage handle container-scroll pages.
 async function captureContainer(container, onProgress) {
   const dpr = window.devicePixelRatio || 1;
+  const viewportW = window.innerWidth;
 
   // Snapshot the bounding rect before any scroll mutations — it stays stable
   // for the duration of the capture on fixed-layout apps like Gmail / Notion.
@@ -129,18 +132,11 @@ async function captureContainer(container, onProgress) {
   const originalScrollTop = container.scrollTop;
   const originalScrollLeft = container.scrollLeft;
 
-  // Hide fixed/sticky elements (window-level and within the container) so they
-  // don't ghost across every captured strip.
-  const hiddenEls = [];
-  for (const el of document.querySelectorAll("*")) {
-    const pos = window.getComputedStyle(el).position;
-    if (pos === "fixed" || pos === "sticky") {
-      hiddenEls.push({ el, original: el.style.visibility });
-      el.style.visibility = "hidden";
-    }
-  }
+  // Fixed/sticky elements are intentionally NOT hidden here. They appear identically
+  // in every captured frame; frame 0 draws them once at their natural position, and
+  // subsequent frames only draw the container content strip (which doesn't overlap
+  // the surrounding chrome). Hiding them would strip the header/sidebar from the result.
 
-  // Build scroll positions the same way as the window path.
   const maxScrollTop = Math.max(0, totalH - clientH);
   const positions = [];
   for (let y = 0; y < totalH; y += clientH) positions.push(y);
@@ -187,9 +183,6 @@ async function captureContainer(container, onProgress) {
       onProgress({ step: i + 1, total: positions.length, phase: "capturing" });
     }
   } finally {
-    hiddenEls.forEach(({ el, original }) => {
-      el.style.visibility = original;
-    });
     container.scrollTop = originalScrollTop;
     container.scrollLeft = originalScrollLeft;
   }
@@ -202,25 +195,37 @@ async function captureContainer(container, onProgress) {
     )
   );
 
-  // Crop each full-viewport bitmap to the container's bounds (device pixels).
-  const cropX = Math.round(rect.left * dpr);
-  const cropY = Math.round(rect.top * dpr);
-  const cropW = Math.round(rect.width * dpr);
-  // Use clientH for crop height to exclude scrollbar track on the edge of the bitmap.
-  const cropH = Math.min(
-    Math.round(clientH * dpr),
-    bitmaps[0].height - cropY
-  );
+  // Canvas spans the full viewport width so the surrounding UI (sidebar, header) is
+  // preserved. Height = area above the container + full scroll height of the container.
+  const containerTopPx = Math.round(rect.top * dpr);
+  const canvasW = Math.round(viewportW * dpr);
+  const canvasH = containerTopPx + Math.ceil(totalH * dpr);
 
-  const canvas = new OffscreenCanvas(cropW, Math.ceil(totalH * dpr));
+  const canvas = new OffscreenCanvas(canvasW, canvasH);
   const ctx = canvas.getContext("2d");
 
+  // Container strip coordinates in device pixels (used for frames 1+).
+  const cropX = Math.round(rect.left * dpr);
+  const cropY = containerTopPx;
+  const cropW = Math.round(rect.width * dpr);
+  // clientH (not rect.height) so the scrollbar track on the container's edge is excluded.
+  const cropH = Math.min(Math.round(clientH * dpr), bitmaps[0].height - cropY);
+
   for (let i = 0; i < segments.length; i++) {
-    ctx.drawImage(
-      bitmaps[i],
-      cropX, cropY, cropW, cropH,                              // source: cropped container region
-      0, Math.round(segments[i].scrollY * dpr), cropW, cropH   // dest: at correct content row
-    );
+    if (i === 0) {
+      // First frame: draw the complete viewport. This stamps the header, sidebar, and
+      // first screen of container content into the canvas in one shot.
+      ctx.drawImage(bitmaps[i], 0, 0);
+    } else {
+      // Subsequent frames: only the container content strip changes. Draw it at the
+      // correct vertical position while leaving the surrounding chrome untouched.
+      const destY = containerTopPx + Math.round(segments[i].scrollY * dpr);
+      ctx.drawImage(
+        bitmaps[i],
+        cropX, cropY, cropW, cropH,   // source: container region from full-viewport bitmap
+        cropX, destY, cropW, cropH    // dest: same horizontal position, advancing vertically
+      );
+    }
     bitmaps[i].close();
   }
 
